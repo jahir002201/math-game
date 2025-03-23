@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const MathGame = () => {
   const [playerName, setPlayerName] = useState("");
@@ -9,60 +9,52 @@ const MathGame = () => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [incorrectAnswers, setIncorrectAnswers] = useState(0);
-  const [totalQuestions, setTotalQuestions] = useState(0);
   const [feedback, setFeedback] = useState("");
-  
+
+  // Memoize the endGame function to avoid issues with useEffect dependencies
+  const endGame = useCallback(() => {
+    setGameStarted(false);
+    setFeedback(`Game Over! Final Score: ${score}`);
+  }, [score]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (gameStarted && timeLeft > 0) {
       timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     } else if (timeLeft === 0) {
-      endGame();
+      endGame(); // Use the memoized endGame function
     }
     return () => clearInterval(timer);
-  }, [gameStarted, timeLeft]);
-  
+  }, [gameStarted, timeLeft, endGame]);  // Add endGame as a dependency
+
   const generateQuestion = () => {
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
     setQuestion(`${num1} + ${num2} = ?`);
     return num1 + num2;
   };
-  
+
   const checkAnswer = () => {
     const correctAnswer = eval(question.split("=")[0]);
-    setTotalQuestions((prev) => prev + 1);
     if (parseInt(answer) === correctAnswer) {
       setScore((prev) => prev + 3);
-      setCorrectAnswers((prev) => prev + 1);
       setFeedback("Correct! +3 points 🎉");
     } else {
       setScore((prev) => prev - 1);
-      setIncorrectAnswers((prev) => prev + 1);
       setFeedback(`Incorrect! -1 point. Correct answer: ${correctAnswer}`);
     }
     setAnswer("");
     generateQuestion();
   };
-  
+
   const startGame = () => {
     setGameStarted(true);
     setScore(0);
     setTimeLeft(180);
-    setCorrectAnswers(0);
-    setIncorrectAnswers(0);
-    setTotalQuestions(0);
     setFeedback("");
     generateQuestion();
   };
-  
-  const endGame = () => {
-    setGameStarted(false);
-    setFeedback(`Game Over! Final Score: ${score}`);
-  };
-  
+
   return (
     <div className="flex flex-col items-center p-6 bg-gradient-to-r from-yellow-300 to-red-400 min-h-screen font-comic">
       <h1 className="text-3xl font-bold text-blue-600 mb-4">Elementary Math Challenge</h1>
